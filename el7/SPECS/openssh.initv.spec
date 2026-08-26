@@ -7,11 +7,6 @@
 # 2: build openssl statically
 %{!?with_openssl: %global with_openssl 2}
 
-# Force to build openssl statically for el5/6
-%if %{with_openssl} == 1
-%global with_openssl 2
-%endif
-
 %global ver %{?opensshver}
 %global rel %{?opensshpkgrel}%{?dist}
 
@@ -40,7 +35,7 @@
 %endif
 
 # Do we want kerberos5 support (1=yes 0=no)
-%global kerberos5 1
+%global kerberos5 0
 
 # Reserve options to override askpass settings with:
 # rpm -ba|--rebuild --define 'skip_xxx 1'
@@ -80,7 +75,7 @@ Release: %{rel}
 URL: https://www.openssh.com/portable.html
 Source0: https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-%{version}.tar.gz
 Source1: http://www.jmknoble.net/software/x11-ssh-askpass/x11-ssh-askpass-%{aversion}.tar.gz
-Source2: sshd.pam.el6
+Source2: sshd.pam.el7
 %if %{with_openssl} == 2
 Source3: https://www.openssl.org/source/openssl-%{opensslver}.tar.gz
 %endif
@@ -110,9 +105,7 @@ BuildRequires: libXt-devel
 # Provides xmkmf
 BuildRequires: imake
 # Rely on relatively recent gtk
-%if %{gtk2}
 BuildRequires: gtk2-devel
-%endif
 %endif
 %if ! %{no_gnome_askpass}
 BuildRequires: pkgconfig
@@ -121,7 +114,6 @@ BuildRequires: pkgconfig
 BuildRequires: krb5-devel
 BuildRequires: krb5-libs
 %endif
-Patch100: 10.4-fix-gssapi.patch
 
 %package clients
 Summary: OpenSSH clients.
@@ -197,18 +189,13 @@ environment.
 %setup -q
 %endif
 
-# Apply GSSAPI option path for 10.4p1
-%if "%{opensshver}" == "10.4p1"
-%patch100 -p1
-%endif
-
 %if %{with_openssl} == 2
 # Add content below to use source code of OpenSSL
 %define openssl_dir %{_builddir}/%{name}-%{version}/openssl
 mkdir -p openssl
 tar xfz %{SOURCE3} --strip-components=1 -C openssl
 pushd openssl
-./config no-dgram no-tests shared zlib -fPIC
+./config shared zlib -fPIC
 make %{?_smp_mflags}
 popd
 %endif
@@ -237,8 +224,7 @@ export LD_LIBRARY_PATH="%{openssl_dir}"
 %endif
 %if %{with_openssl} == 0
 	--without-openssl \
-%endif
-%if %{with_openssl} > 0
+%else
 	--with-ssl-engine \
 %endif
 	--with-zlib \
@@ -253,7 +239,6 @@ export LD_LIBRARY_PATH="%{openssl_dir}"
 
 
 %if %{with_openssl} == 2
-#perl -pi -e "s|-lcrypto|%{_libdir}/libcrypto.a|g" Makefile
 # Add OpenSSL library
 perl -pi -e "s|-lcrypto|%{openssl_dir}/libcrypto.a -lpthread|g" Makefile
 %endif

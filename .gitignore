@@ -1,7 +1,12 @@
 BUILD/
+output/
+.*
+*-local*
 *.orig
 *.swp
 *.tar.gz
+*/RPMS/*
 */SRPMS/*
 */BUILD/*
 */BUILDROOT/*
+downloads/*.tar.gz
